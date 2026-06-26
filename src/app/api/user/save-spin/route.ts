@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (freeCoffeeEarned) {
-      updateOps.$inc.totalFreeCoffees = 1
+      updateOps.$inc = { totalFreeCoffees: 1 }
     }
 
     const user = await User.findOneAndUpdate(
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     await spin.save()
 
     // Attach computed fields for the frontend
-    const result = user.toObject()
+    const result = JSON.parse(JSON.stringify(user))
     result.monthlyStamps = monthlyStamps
     result.freeCoffeeEarned = freeCoffeeEarned
 
