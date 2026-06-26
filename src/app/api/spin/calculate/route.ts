@@ -30,7 +30,7 @@ const TIER_TABLES = {
   ],
 }
 
-function pickDiscount(tier: 'low' | 'mid' | 'high') {
+function pickDiscount(tier: 'base' | 'low' | 'mid' | 'high') {
   const table = TIER_TABLES[tier]
   const total = table.reduce((sum, e) => sum + e.weight, 0)
   let rand = Math.random() * total
