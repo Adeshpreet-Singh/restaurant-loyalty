@@ -1,6 +1,6 @@
 'use client'
 
-export default function LoyaltyCard({ stamps, visitHistory, customerName, accountNumber, onBack, onNewVisit, totalFreeCoffees }: {
+export default function LoyaltyCard({ stamps, visitHistory, customerName, accountNumber, onBack, onNewVisit, totalFreeCoffees, freeCoffeePending, onClaimFreeCoffee }: {
   stamps: number
   visitHistory: Array<{ date: string; bill: number; discount: number; finalAmount: string; promoCode?: string }>
   customerName: string
@@ -8,13 +8,14 @@ export default function LoyaltyCard({ stamps, visitHistory, customerName, accoun
   onBack: () => void
   onNewVisit: () => void
   totalFreeCoffees: number
+  freeCoffeePending: boolean
+  onClaimFreeCoffee: () => void
 }) {
   const totalDiscount = visitHistory.reduce((sum, v) => sum + (v.bill - parseFloat(v.finalAmount)), 0)
 
-  // Monthly stamp system: 4 stamps then 5th = free coffee
-  const monthlyStamps = stamps % 5 === 0 && stamps > 0 ? 0 : stamps % 5
-  const isEligibleForFreeCoffee = stamps > 0 && stamps % 5 === 0
-  const nextRewardAt = isEligibleForFreeCoffee ? 0 : 4 - monthlyStamps
+  // stamps = loyaltyPoints = 0-4 (monthly stamps)
+  const monthlyStamps = stamps
+  const nextRewardAt = 4 - monthlyStamps
 
   // Get current month visits
   const now = new Date()
@@ -77,19 +78,19 @@ export default function LoyaltyCard({ stamps, visitHistory, customerName, accoun
               <div className="progress-fill" style={{ width: `${(monthlyStamps / 5) * 100}%` }} />
             </div>
             <span className="progress-text">
-              {isEligibleForFreeCoffee
-                ? '☕ Free Coffee Earned! Show this to the manager'
+              {freeCoffeePending
+                ? '☕ Free Coffee Ready! Claim it now'
                 : `${nextRewardAt} more visit${nextRewardAt !== 1 ? 's' : ''} for free coffee`}
             </span>
           </div>
         </div>
 
-        {isEligibleForFreeCoffee && (
-          <div className="free-coffee-banner">
+        {freeCoffeePending && (
+          <div className="free-coffee-banner" onClick={onClaimFreeCoffee}>
             <span className="coffee-icon">☕</span>
             <div>
               <strong>FREE COFFEE!</strong>
-              <p>Show this to the manager</p>
+              <p>Tap to claim — show this to the manager</p>
             </div>
           </div>
         )}

@@ -16,6 +16,7 @@ import {
   clearPendingSpin,
   logJackpotWin,
   getLastPhone,
+  claimFreeCoffee,
 } from '@/lib/utils/data'
 
 function generateAccountNumber(phone: string) {
@@ -38,6 +39,7 @@ interface UserData {
   loyaltyPoints?: number
   totalVisits?: number
   totalFreeCoffees?: number
+  freeCoffeePending?: boolean
   visitHistory?: VisitHistory[]
   accountNumber?: string
 }
@@ -54,6 +56,7 @@ export default function LoyaltyApp() {
   const [userPhone, setUserPhone] = useState('')
   const [stamps, setStamps] = useState(0)
   const [totalFreeCoffees, setTotalFreeCoffees] = useState(0)
+  const [freeCoffeePending, setFreeCoffeePending] = useState(false)
   const [visitHistory, setVisitHistory] = useState<VisitHistory[]>([])
   const [accountNumber, setAccountNumber] = useState('')
 
@@ -61,12 +64,13 @@ export default function LoyaltyApp() {
     const phone = getLastPhone()
 
     const loadUser = phone
-      ? getUser(phone).then((user: UserData | null) => {
+      ?       getUser(phone).then((user: UserData | null) => {
           if (user) {
             setUserPhone(phone)
             setUserName(user.name || '')
             setStamps(user.loyaltyPoints || 0)
             setTotalFreeCoffees(user.totalFreeCoffees || 0)
+            setFreeCoffeePending(user.freeCoffeePending || false)
             setVisitHistory(user.visitHistory || [])
             setAccountNumber(user.accountNumber || generateAccountNumber(phone))
             return user
@@ -128,6 +132,7 @@ export default function LoyaltyApp() {
     setUserName(updated.name || '')
     setStamps(updated.loyaltyPoints || 0)
     setTotalFreeCoffees(updated.totalFreeCoffees || 0)
+    setFreeCoffeePending(updated.freeCoffeePending || false)
     setVisitHistory(updated.visitHistory || [])
     setAccountNumber(updated.accountNumber || generateAccountNumber(phone))
 
@@ -143,6 +148,7 @@ export default function LoyaltyApp() {
         setUserName(user.name || '')
         setStamps(user.loyaltyPoints || 0)
         setTotalFreeCoffees(user.totalFreeCoffees || 0)
+        setFreeCoffeePending(user.freeCoffeePending || false)
         setVisitHistory(user.visitHistory || [])
         setAccountNumber(user.accountNumber || generateAccountNumber(phone))
       }
@@ -153,6 +159,14 @@ export default function LoyaltyApp() {
   function handleBackToWelcome() {
     setError('')
     setScreen('bill')
+  }
+
+  async function handleClaimFreeCoffee() {
+    const phone = userPhone || getLastPhone()
+    if (phone) {
+      await claimFreeCoffee(phone)
+      setFreeCoffeePending(false)
+    }
   }
 
   async function handleNewVisit() {
@@ -208,6 +222,8 @@ export default function LoyaltyApp() {
             onBack={handleBackToWelcome}
             onNewVisit={handleNewVisit}
             totalFreeCoffees={totalFreeCoffees}
+            freeCoffeePending={freeCoffeePending}
+            onClaimFreeCoffee={handleClaimFreeCoffee}
           />
         )}
       </div>

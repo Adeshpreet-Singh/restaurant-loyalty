@@ -14,6 +14,7 @@ export interface IUser extends Document {
   loyaltyPoints: number
   totalVisits: number
   totalFreeCoffees: number
+  freeCoffeePending: boolean
   visitHistory: IVisit[]
   lastSpinDate?: Date
   lastStampMonth: string
@@ -39,6 +40,7 @@ const userSchema = new Schema<IUser>({
   loyaltyPoints: { type: Number, default: 0 },
   totalVisits: { type: Number, default: 0 },
   totalFreeCoffees: { type: Number, default: 0 },
+  freeCoffeePending: { type: Boolean, default: false },
   visitHistory: { type: [visitSchema], default: [] },
   lastSpinDate: { type: Date },
   lastStampMonth: { type: String, default: '' },

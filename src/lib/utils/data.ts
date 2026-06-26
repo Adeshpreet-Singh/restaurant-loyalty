@@ -107,6 +107,18 @@ export async function completeTask(phone: string, task: string) {
   }
 }
 
+// ─── Claim free coffee ──────────────────────────────────────────
+export async function claimFreeCoffee(phone: string) {
+  try {
+    const result = await api(`/api/user/${phone}/claim-free-coffee`, {
+      method: 'POST',
+    })
+    return result
+  } catch (err) {
+    console.error('Failed to claim free coffee:', err)
+  }
+}
+
 // ─── Phone persistence (localStorage) ────────────────────────────
 export function saveLastPhone(phone: string) {
   localStorage.setItem(PHONE_KEY, phone)

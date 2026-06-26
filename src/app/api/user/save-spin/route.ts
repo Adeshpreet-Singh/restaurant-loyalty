@@ -83,10 +83,8 @@ export async function POST(req: NextRequest) {
 
     // Award stamp or free coffee
     if (monthlyStamps < 4) {
-      // Stamps 1-4: just increment
       monthlyStamps += 1
     } else if (monthlyStamps === 4) {
-      // 5th visit: free coffee!
       freeCoffeeEarned = true
       monthlyStamps = 0
     }
@@ -96,6 +94,7 @@ export async function POST(req: NextRequest) {
         lastSpinDate: new Date(),
         lastStampMonth: currentMonth,
         loyaltyPoints: monthlyStamps,
+        freeCoffeePending: freeCoffeeEarned ? true : existingUser.freeCoffeePending,
       },
       $inc: { totalVisits: 1 },
       $push: { visitHistory: visit },

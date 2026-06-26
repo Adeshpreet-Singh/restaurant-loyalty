@@ -44,9 +44,11 @@ export default function ResultScreen({
   const [codeRevealed, setCodeRevealed] = useState(false)
   const [savedData, setSavedData] = useState<Record<string, unknown> | null>(null)
   const [existingPromoCode, setExistingPromoCode] = useState<string | null>(null)
+  const [isReturningUser, setIsReturningUser] = useState(false)
 
   const tasksCompleted = [phoneDone, igDone, reviewDone].filter(Boolean).length
-  const allDone = phoneDone && igDone && reviewDone
+  const totalTasks = isReturningUser ? 1 : 3
+  const allDone = isReturningUser ? phoneDone : (phoneDone && igDone && reviewDone)
   const displayPromoCode = existingPromoCode || promoCode
 
   useEffect(() => {
@@ -60,6 +62,9 @@ export default function ResultScreen({
     getUser(phone).then(async (user: Record<string, unknown> | null) => {
       if (!user) return
 
+      const visitHistory = user.visitHistory as Array<{ date: string; promoCode?: string }> | undefined
+      const hasVisitedBefore = visitHistory && visitHistory.length > 0
+
       const lastSpinDate = user.lastSpinDate as string | undefined
       if (lastSpinDate && isToday(lastSpinDate)) {
         setAlreadyUsedToday(true)
@@ -67,7 +72,11 @@ export default function ResultScreen({
         setPhoneDone(true)
         setSavedData(user)
         setPhoneInput(phone)
-        const visitHistory = user.visitHistory as Array<{ date: string; promoCode?: string }> | undefined
+        if (hasVisitedBefore) {
+          setIsReturningUser(true)
+          setIgDone(true)
+          setReviewDone(true)
+        }
         const todayVisit = visitHistory?.find(v => isToday(v.date))
         if (todayVisit?.promoCode) {
           setExistingPromoCode(todayVisit.promoCode)
@@ -84,19 +93,30 @@ export default function ResultScreen({
         setPhoneDone(true)
         setPhoneInput(phone)
 
-        const tasks = updated.completedTasks as { instagram?: boolean; review?: boolean } | undefined
-        if (tasks?.instagram) setIgDone(true)
-        if (tasks?.review) setReviewDone(true)
-
-        if (tasks?.instagram && tasks?.review) {
+        if (hasVisitedBefore) {
+          setIsReturningUser(true)
+          setIgDone(true)
+          setReviewDone(true)
           setCodeRevealed(true)
+        } else {
+          const tasks = updated.completedTasks as { instagram?: boolean; review?: boolean } | undefined
+          if (tasks?.instagram) setIgDone(true)
+          if (tasks?.review) setReviewDone(true)
+
+          if (tasks?.instagram && tasks?.review) {
+            setCodeRevealed(true)
+          }
         }
       } catch {
         setAlreadyUsedToday(true)
         setCodeRevealed(true)
         setPhoneDone(true)
         setSavedData(user)
-        const visitHistory = user.visitHistory as Array<{ date: string; promoCode?: string }> | undefined
+        if (hasVisitedBefore) {
+          setIsReturningUser(true)
+          setIgDone(true)
+          setReviewDone(true)
+        }
         const todayVisit = visitHistory?.find(v => isToday(v.date))
         if (todayVisit?.promoCode) {
           setExistingPromoCode(todayVisit.promoCode)
@@ -168,9 +188,8 @@ export default function ResultScreen({
   const finalAmount = billAmount - discountAmount
   const loyaltyPoints = (savedData?.loyaltyPoints as number) || 0
   const freeCoffeeJustEarned = (savedData?.freeCoffeeEarned as boolean) || false
-  // Monthly stamps: 0-4, where 4 means next visit is free coffee
   const monthlyStamps = loyaltyPoints
-  const freeCoffeeEarned = freeCoffeeJustEarned || (loyaltyPoints === 0 && (savedData?.totalFreeCoffees as number || 0) > 0)
+  const freeCoffeeEarned = freeCoffeeJustEarned || ((savedData?.freeCoffeePending as boolean) || false)
 
   if (alreadyUsedToday) {
     return (
@@ -348,7 +367,9 @@ export default function ResultScreen({
 
             {!allDone && (
               <p className="promo-hint">
-                Complete {3 - tasksCompleted} more task{3 - tasksCompleted !== 1 ? 's' : ''} to reveal your code
+                {isReturningUser
+                  ? 'Enter your phone number to reveal your code'
+                  : `Complete ${totalTasks - tasksCompleted} more task${totalTasks - tasksCompleted !== 1 ? 's' : ''} to reveal your code`}
               </p>
             )}
             {codeRevealed && (
@@ -363,11 +384,11 @@ export default function ResultScreen({
               <div className="tasks-progress-bar">
                 <div
                   className="tasks-progress-fill"
-                  style={{ width: `${(tasksCompleted / 3) * 100}%` }}
+                  style={{ width: `${(tasksCompleted / totalTasks) * 100}%` }}
                 />
               </div>
               <span className="tasks-progress-label">
-                {tasksCompleted}/3 completed
+                {tasksCompleted}/{totalTasks} completed
               </span>
             </div>
 
@@ -408,37 +429,41 @@ export default function ResultScreen({
               </div>
             )}
 
-            <button
-              className={`task-item ${igDone ? 'done' : 'pending'}`}
-              onClick={!igDone ? handleInstagram : undefined}
-              disabled={igDone || !phoneDone}
-              style={!phoneDone ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-            >
-              <span className="task-icon">📸</span>
-              <div className="task-content">
-                <span className="task-label">Follow on Instagram</span>
-                <span className="task-sub">
-                  {igDone ? 'Completed ✓' : !phoneDone ? 'Complete task 1 first' : 'Tap to follow @brewbakescourtyard'}
-                </span>
-              </div>
-              {igDone ? <span className="task-check">✅</span> : <span className="task-arrow">→</span>}
-            </button>
+            {!isReturningUser && (
+              <>
+                <button
+                  className={`task-item ${igDone ? 'done' : 'pending'}`}
+                  onClick={!igDone ? handleInstagram : undefined}
+                  disabled={igDone || !phoneDone}
+                  style={!phoneDone ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                >
+                  <span className="task-icon">📸</span>
+                  <div className="task-content">
+                    <span className="task-label">Follow on Instagram</span>
+                    <span className="task-sub">
+                      {igDone ? 'Completed ✓' : !phoneDone ? 'Complete task 1 first' : 'Tap to follow @brewbakescourtyard'}
+                    </span>
+                  </div>
+                  {igDone ? <span className="task-check">✅</span> : <span className="task-arrow">→</span>}
+                </button>
 
-            <button
-              className={`task-item ${reviewDone ? 'done' : 'pending'}`}
-              onClick={!reviewDone ? handleGoogleReview : undefined}
-              disabled={reviewDone || !igDone}
-              style={!igDone ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-            >
-              <span className="task-icon">⭐</span>
-              <div className="task-content">
-                <span className="task-label">Review Brewbakes Courtyard</span>
-                <span className="task-sub">
-                  {reviewDone ? 'Completed ✓' : !igDone ? 'Complete task 2 first' : 'Tap to leave a Google review'}
-                </span>
-              </div>
-              {reviewDone ? <span className="task-check">✅</span> : <span className="task-arrow">→</span>}
-            </button>
+                <button
+                  className={`task-item ${reviewDone ? 'done' : 'pending'}`}
+                  onClick={!reviewDone ? handleGoogleReview : undefined}
+                  disabled={reviewDone || !igDone}
+                  style={!igDone ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                >
+                  <span className="task-icon">⭐</span>
+                  <div className="task-content">
+                    <span className="task-label">Review Brewbakes Courtyard</span>
+                    <span className="task-sub">
+                      {reviewDone ? 'Completed ✓' : !igDone ? 'Complete task 2 first' : 'Tap to leave a Google review'}
+                    </span>
+                  </div>
+                  {reviewDone ? <span className="task-check">✅</span> : <span className="task-arrow">→</span>}
+                </button>
+              </>
+            )}
           </div>
 
           {phoneDone && (
