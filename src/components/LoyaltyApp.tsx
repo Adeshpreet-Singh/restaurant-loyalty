@@ -1,0 +1,197 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import BillSelection from '@/components/BillSelection'
+import ResultScreen from '@/components/ResultScreen'
+import LoyaltyCard from '@/components/LoyaltyCard'
+import {
+  getUser,
+  saveSpinResult,
+  canSpinToday,
+  recordSpin,
+  getTodaysSpin,
+  generatePromoCode,
+  savePendingSpin,
+  loadPendingSpin,
+  clearPendingSpin,
+  logJackpotWin,
+  getLastPhone,
+} from '@/lib/utils/data'
+
+function generateAccountNumber(phone: string) {
+  const hash = phone.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0)
+  }, 0)
+  return 'BB' + Math.abs(hash).toString().slice(0, 6).padStart(6, '0')
+}
+
+interface VisitHistory {
+  date: string
+  bill: number
+  discount: number
+  finalAmount: string
+  promoCode?: string
+}
+
+interface UserData {
+  name?: string
+  loyaltyPoints?: number
+  totalVisits?: number
+  visitHistory?: VisitHistory[]
+  accountNumber?: string
+}
+
+export default function LoyaltyApp() {
+  const [screen, setScreen] = useState<'bill' | 'result' | 'loyalty'>('bill')
+  const [billAmount, setBillAmount] = useState(0)
+  const [discount, setDiscount] = useState(0)
+  const [promoCode, setPromoCode] = useState('')
+  const [error, setError] = useState('')
+
+  const [userName, setUserName] = useState('')
+  const [userPhone, setUserPhone] = useState('')
+  const [stamps, setStamps] = useState(0)
+  const [visitHistory, setVisitHistory] = useState<VisitHistory[]>([])
+  const [accountNumber, setAccountNumber] = useState('')
+
+  useEffect(() => {
+    const phone = getLastPhone()
+
+    if (phone) {
+      getUser(phone).then((user: UserData | null) => {
+        if (user) {
+          setUserPhone(phone)
+          setUserName(user.name || '')
+          setStamps(user.totalVisits || 0)
+          setVisitHistory(user.visitHistory || [])
+          setAccountNumber(user.accountNumber || generateAccountNumber(phone))
+        }
+      }).catch(() => {})
+    }
+
+    getTodaysSpin().then(spin => {
+      if (spin) {
+        setBillAmount(spin.billAmount)
+        setDiscount(spin.discount)
+        setPromoCode(spin.promoCode)
+        setScreen('result')
+      }
+    }).catch(() => {
+      const pending = loadPendingSpin()
+      if (pending) {
+        setBillAmount(pending.billAmount)
+        setDiscount(pending.discount)
+        setPromoCode(pending.promoCode)
+        setScreen('result')
+      }
+    })
+  }, [])
+
+  async function handleSpinResult(amount: number, disc: number) {
+    const code = generatePromoCode()
+    setBillAmount(amount)
+    setDiscount(disc)
+    setPromoCode(code)
+    savePendingSpin(amount, disc, code)
+
+    try {
+      await recordSpin(disc, amount, code)
+      if (disc === 100) {
+        const phone = userPhone || getLastPhone()
+        await logJackpotWin(phone || undefined)
+      }
+    } catch {
+      // server offline — result saved in localStorage
+    }
+    setScreen('result')
+  }
+
+  const handleSaveUser = useCallback(async (phone: string) => {
+    const updated = await saveSpinResult(phone) as UserData
+    clearPendingSpin()
+
+    setUserPhone(phone)
+    setUserName(updated.name || '')
+    setStamps(updated.totalVisits || 0)
+    setVisitHistory(updated.visitHistory || [])
+    setAccountNumber(updated.accountNumber || generateAccountNumber(phone))
+
+    return updated
+  }, [])
+
+  async function handleViewLoyalty() {
+    const phone = userPhone || getLastPhone()
+    if (phone) {
+      const user = await getUser(phone) as UserData | null
+      if (user) {
+        setUserPhone(phone)
+        setUserName(user.name || '')
+        setStamps(user.totalVisits || 0)
+        setVisitHistory(user.visitHistory || [])
+        setAccountNumber(user.accountNumber || generateAccountNumber(phone))
+      }
+    }
+    setScreen('loyalty')
+  }
+
+  function handleBackToWelcome() {
+    setError('')
+    setScreen('bill')
+  }
+
+  async function handleNewVisit() {
+    const phone = userPhone || getLastPhone()
+    const canSpin = await canSpinToday(phone || undefined)
+    if (!canSpin) {
+      setError('You already spun today! Come back tomorrow for another chance.')
+      return
+    }
+    setError('')
+    setBillAmount(0)
+    setDiscount(0)
+    setPromoCode('')
+    setScreen('bill')
+  }
+
+  return (
+    <div className="app">
+      <div className="bg-orbs">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+      </div>
+
+      {error && (
+        <div className="global-error-banner">
+          <span>{error}</span>
+          <button onClick={() => setError('')}>✕</button>
+        </div>
+      )}
+
+      <div className="screen-container" key={screen}>
+        {screen === 'bill' && (
+          <BillSelection userName={userName} onResult={handleSpinResult} onError={setError} />
+        )}
+        {screen === 'result' && (
+          <ResultScreen
+            discount={discount}
+            billAmount={billAmount}
+            promoCode={promoCode}
+            onSaved={handleSaveUser}
+            onViewLoyalty={handleViewLoyalty}
+          />
+        )}
+        {screen === 'loyalty' && (
+          <LoyaltyCard
+            stamps={stamps}
+            visitHistory={visitHistory}
+            customerName={userName}
+            accountNumber={accountNumber}
+            onBack={handleBackToWelcome}
+            onNewVisit={handleNewVisit}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
