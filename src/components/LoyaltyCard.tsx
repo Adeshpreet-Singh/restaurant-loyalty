@@ -48,7 +48,7 @@ export default function LoyaltyCard({ stamps, visitHistory, customerName, accoun
 
           <div className="card-account">
             <span className="account-label">Account No:</span>
-            <span className="account-number">{accountNumber}</accountNumber>
+            <span className="account-number">{accountNumber}</span>
           </div>
 
           <div className="card-stamps">
