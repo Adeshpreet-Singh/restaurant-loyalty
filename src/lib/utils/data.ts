@@ -191,38 +191,15 @@ export function generatePromoCode() {
   return code
 }
 
-// ─── Weighted spin ─────────────────────────────────────────────────
-const SPIN_TABLE = [
-  { discount: 5,    weight: 30 },
-  { discount: 7.5,  weight: 25 },
-  { discount: 10,   weight: 20 },
-  { discount: 12.5, weight: 12 },
-  { discount: 15,   weight: 7 },
-  { discount: 17,   weight: 4 },
-  { discount: 20,   weight: 1.5 },
-  { discount: 100,  weight: 0.5 },
-]
-
-export async function getWeightedDiscount() {
-  let available = SPIN_TABLE
+// ─── Server-side discount calculation ──────────────────────────────
+export async function calculateDiscount(billAmount: number): Promise<{ discount: number; freebie?: { name: string; value: number } }> {
   try {
-    const canWin = await canWinJackpot()
-    if (!canWin) {
-      available = SPIN_TABLE.filter(e => e.discount !== 100)
-    }
+    const result = await api('/api/spin/calculate', {
+      method: 'POST',
+      body: JSON.stringify({ billAmount }),
+    })
+    return result
   } catch {
-    // fallback to full table
+    return { discount: 5 }
   }
-
-  const total = available.reduce((sum, s) => sum + s.weight, 0)
-  let rand = Math.random() * total
-  for (const entry of available) {
-    rand -= entry.weight
-    if (rand <= 0) return entry.discount
-  }
-  return available[0].discount
-}
-
-export function getSpinTable() {
-  return SPIN_TABLE
 }

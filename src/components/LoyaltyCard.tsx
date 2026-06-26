@@ -1,16 +1,28 @@
 'use client'
 
-export default function LoyaltyCard({ stamps, visitHistory, customerName, accountNumber, onBack, onNewVisit }: {
+export default function LoyaltyCard({ stamps, visitHistory, customerName, accountNumber, onBack, onNewVisit, totalFreeCoffees }: {
   stamps: number
   visitHistory: Array<{ date: string; bill: number; discount: number; finalAmount: string; promoCode?: string }>
   customerName: string
   accountNumber: string
   onBack: () => void
   onNewVisit: () => void
+  totalFreeCoffees: number
 }) {
   const totalDiscount = visitHistory.reduce((sum, v) => sum + (v.bill - parseFloat(v.finalAmount)), 0)
-  const currentCycle = stamps % 5 === 0 && stamps > 0 ? 5 : stamps % 5
+
+  // Monthly stamp system: 4 stamps then 5th = free coffee
+  const monthlyStamps = stamps % 5 === 0 && stamps > 0 ? 0 : stamps % 5
   const isEligibleForFreeCoffee = stamps > 0 && stamps % 5 === 0
+  const nextRewardAt = isEligibleForFreeCoffee ? 0 : 4 - monthlyStamps
+
+  // Get current month visits
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const monthlyVisitCount = visitHistory.filter(v => {
+    const d = new Date(v.date)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === currentMonth
+  }).length
 
   return (
     <div className="screen loyalty-screen">
@@ -36,32 +48,38 @@ export default function LoyaltyCard({ stamps, visitHistory, customerName, accoun
 
           <div className="card-account">
             <span className="account-label">Account No:</span>
-            <span className="account-number">{accountNumber}</span>
+            <span className="account-number">{accountNumber}</accountNumber>
           </div>
 
           <div className="card-stamps">
             <div className="stamps-header">
-              <span className="stamps-title">Stamps Collected</span>
-              <span className="stamps-count">{stamps} / {Math.ceil(stamps / 5) * 5 || 5}</span>
+              <span className="stamps-title">This Month&apos;s Stamps</span>
+              <span className="stamps-count">{monthlyVisitCount} / 5</span>
             </div>
             <div className="stamps-grid">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className={`card-stamp ${i < currentCycle ? 'stamped' : ''}`}>
-                  <span className="stamp-icon">{i < currentCycle ? '⭐' : '☆'}</span>
-                  <span className="stamp-num">{i + 1}</span>
-                </div>
-              ))}
+              {[...Array(5)].map((_, i) => {
+                const isStamp = i < monthlyStamps
+                const isReward = i === 4
+                return (
+                  <div key={i} className={`card-stamp ${isStamp ? 'stamped' : ''} ${isReward ? 'reward-stamp' : ''}`}>
+                    <span className="stamp-icon">
+                      {isReward ? '☕' : isStamp ? '⭐' : '☆'}
+                    </span>
+                    <span className="stamp-num">{isReward ? 'FREE' : i + 1}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
           <div className="card-progress">
             <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${(currentCycle / 5) * 100}%` }} />
+              <div className="progress-fill" style={{ width: `${(monthlyStamps / 5) * 100}%` }} />
             </div>
             <span className="progress-text">
               {isEligibleForFreeCoffee
-                ? '☕ Free Coffee Earned!'
-                : `${5 - currentCycle} more visit${5 - currentCycle !== 1 ? 's' : ''} for free coffee`}
+                ? '☕ Free Coffee Earned! Show this to the manager'
+                : `${nextRewardAt} more visit${nextRewardAt !== 1 ? 's' : ''} for free coffee`}
             </span>
           </div>
         </div>
@@ -78,11 +96,11 @@ export default function LoyaltyCard({ stamps, visitHistory, customerName, accoun
 
         <div className="stats-grid">
           <div className="stat-card">
-            <span className="stat-value">{stamps}</span>
-            <span className="stat-label">Total Visits</span>
+            <span className="stat-value">{monthlyVisitCount}</span>
+            <span className="stat-label">This Month</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">{Math.floor(stamps / 5)}</span>
+            <span className="stat-value">{totalFreeCoffees}</span>
             <span className="stat-label">Free Coffees</span>
           </div>
           <div className="stat-card">

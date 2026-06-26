@@ -1145,6 +1145,36 @@ body {
   overflow: hidden;
 }
 
+/* -- Freebie Banner -- */
+.freebie-banner {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(83, 82, 237, 0.1));
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: var(--radius);
+  padding: var(--sp-lg) var(--sp-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-lg);
+  animation: fadeInUp 0.5s ease;
+}
+
+.freebie-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.freebie-banner strong {
+  font-size: 15px;
+  color: var(--purple);
+  display: block;
+}
+
+.freebie-banner p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
 .free-coffee-banner::before {
   content: '';
   position: absolute;
@@ -1390,10 +1420,21 @@ body {
   animation: stampPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.card-stamp.reward-stamp .stamp-icon {
+  opacity: 0.6;
+  filter: grayscale(0.3);
+  font-size: 24px;
+}
+
 .stamp-num {
   font-size: 9px;
   color: var(--text-secondary);
   font-weight: 600;
+}
+
+.reward-dot {
+  font-size: 22px;
+  opacity: 0.7;
 }
 
 .card-progress {

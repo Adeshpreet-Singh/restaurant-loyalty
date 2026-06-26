@@ -9,6 +9,11 @@ function getStartOfDay() {
   return d
 }
 
+function getCurrentMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
@@ -52,18 +57,57 @@ export async function POST(req: NextRequest) {
       promoCode,
     }
 
+    const currentMonth = getCurrentMonth()
+
+    // Find existing user to check monthly stamp state
+    let existingUser = await User.findOne({ phone })
+    if (!existingUser) {
+      existingUser = await User.create({
+        phone,
+        createdAt: new Date(),
+        completedTasks: { phone: false, instagram: false, review: false },
+        loyaltyPoints: 0,
+        totalVisits: 0,
+        totalFreeCoffees: 0,
+        lastStampMonth: currentMonth,
+      })
+    }
+
+    // Check if month changed — reset monthly stamps
+    let monthlyStamps = existingUser.loyaltyPoints || 0
+    if (existingUser.lastStampMonth !== currentMonth) {
+      monthlyStamps = 0
+    }
+
+    let freeCoffeeEarned = false
+
+    // Award stamp or free coffee
+    if (monthlyStamps < 4) {
+      // Stamps 1-4: just increment
+      monthlyStamps += 1
+    } else if (monthlyStamps === 4) {
+      // 5th visit: free coffee!
+      freeCoffeeEarned = true
+      monthlyStamps = 0
+    }
+
+    const updateOps: Record<string, unknown> = {
+      $set: {
+        lastSpinDate: new Date(),
+        lastStampMonth: currentMonth,
+        loyaltyPoints: monthlyStamps,
+      },
+      $inc: { totalVisits: 1 },
+      $push: { visitHistory: visit },
+    }
+
+    if (freeCoffeeEarned) {
+      updateOps.$inc.totalFreeCoffees = 1
+    }
+
     const user = await User.findOneAndUpdate(
       { phone },
-      {
-        $setOnInsert: {
-          phone,
-          createdAt: new Date(),
-          completedTasks: { phone: false, instagram: false, review: false },
-        },
-        $set: { lastSpinDate: new Date() },
-        $inc: { totalVisits: 1 },
-        $push: { visitHistory: visit },
-      },
+      updateOps,
       { new: true, upsert: true }
     )
 
@@ -71,7 +115,12 @@ export async function POST(req: NextRequest) {
     spin.redeemed = true
     await spin.save()
 
-    return NextResponse.json(user)
+    // Attach computed fields for the frontend
+    const result = user.toObject()
+    result.monthlyStamps = monthlyStamps
+    result.freeCoffeeEarned = freeCoffeeEarned
+
+    return NextResponse.json(result)
   } catch (err) {
     console.error('Error saving spin result:', err)
     return NextResponse.json({ error: 'Failed to save spin result' }, { status: 500 })

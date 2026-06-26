@@ -1,7 +1,12 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { getWeightedDiscount, canSpinToday, getJackpotCountThisMonth, getLastPhone } from '@/lib/utils/data'
+import { calculateDiscount, canSpinToday, getJackpotCountThisMonth, getLastPhone } from '@/lib/utils/data'
+
+interface Freebie {
+  name: string
+  value: number
+}
 
 const DISCOUNTS = [5, 7.5, 10, 12.5, 15, 17, 20, 100]
 const SEGMENTS = DISCOUNTS.length
@@ -14,7 +19,7 @@ const COLORS = [
 
 export default function BillSelection({ userName, onResult, onError }: {
   userName: string
-  onResult: (amount: number, discount: number) => void
+  onResult: (amount: number, discount: number, freebie?: Freebie) => void
   onError: (msg: string) => void
 }) {
   const [spinning, setSpinning] = useState(false)
@@ -23,7 +28,7 @@ export default function BillSelection({ userName, onResult, onError }: {
   const [billInput, setBillInput] = useState('')
   const wheelRef = useRef<HTMLDivElement>(null)
 
-  const isUnlocked = billInput.length > 0 && parseFloat(billInput) >= 199
+  const isUnlocked = billInput.length > 0 && parseFloat(billInput) >= 100
 
   useEffect(() => {
     getJackpotCountThisMonth().then(count => setJackpotLeft(4 - count))
@@ -33,12 +38,8 @@ export default function BillSelection({ userName, onResult, onError }: {
     if (spinning) return
 
     const amount = parseFloat(billInput)
-    if (!amount || amount <= 0) {
-      onError?.('Please enter a valid bill amount')
-      return
-    }
-    if (amount < 199) {
-      onError?.('Minimum bill amount is ₹199')
+    if (amount < 100) {
+      onError?.('Minimum bill amount is ₹100')
       return
     }
 
@@ -51,8 +52,15 @@ export default function BillSelection({ userName, onResult, onError }: {
 
     setSpinning(true)
 
-    const resultDiscount = await getWeightedDiscount()
-    const targetIndex = DISCOUNTS.indexOf(resultDiscount)
+    const result = await calculateDiscount(amount)
+    const resultDiscount = result.discount
+    const freebie = result.freebie
+
+    // Find closest matching segment on wheel
+    const closestDiscount = DISCOUNTS.reduce((prev, curr) =>
+      Math.abs(curr - resultDiscount) < Math.abs(prev - resultDiscount) ? curr : prev
+    )
+    const targetIndex = DISCOUNTS.indexOf(closestDiscount)
     const targetAngle = targetIndex * SEGMENT_ANGLE + SEGMENT_ANGLE / 2
     const extraSpins = 5 + Math.floor(Math.random() * 3)
     const totalRotation = rotation + extraSpins * 360 + (270 - targetAngle)
@@ -61,7 +69,7 @@ export default function BillSelection({ userName, onResult, onError }: {
 
     setTimeout(() => {
       setSpinning(false)
-      onResult(amount, resultDiscount)
+      onResult(amount, resultDiscount, freebie)
     }, 4200)
   }, [spinning, rotation, onResult, onError, billInput])
 
@@ -97,7 +105,7 @@ export default function BillSelection({ userName, onResult, onError }: {
               value={billInput}
               onChange={(e) => setBillInput(e.target.value)}
             disabled={spinning}
-            min="199"
+            min="1"
           />
           </div>
           <button

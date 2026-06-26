@@ -19,12 +19,14 @@ export default function ResultScreen({
   discount,
   billAmount,
   promoCode,
+  freebie,
   onSaved,
   onViewLoyalty,
 }: {
   discount: number
   billAmount: number
   promoCode: string
+  freebie?: { name: string; value: number }
   onSaved: (phone: string) => Promise<unknown>
   onViewLoyalty: () => void
 }) {
@@ -163,8 +165,10 @@ export default function ResultScreen({
   const discountAmount = (billAmount * discount) / 100
   const finalAmount = billAmount - discountAmount
   const loyaltyPoints = (savedData?.loyaltyPoints as number) || 0
-  const pointsInCycle = loyaltyPoints % 5
-  const freeCoffeeEarned = loyaltyPoints > 0 && loyaltyPoints % 5 === 0
+  const freeCoffeeJustEarned = (savedData?.freeCoffeeEarned as boolean) || false
+  // Monthly stamps: 0-4, where 4 means next visit is free coffee
+  const monthlyStamps = loyaltyPoints
+  const freeCoffeeEarned = freeCoffeeJustEarned || (loyaltyPoints === 0 && (savedData?.totalFreeCoffees as number || 0) > 0)
 
   if (alreadyUsedToday) {
     return (
@@ -206,6 +210,16 @@ export default function ResultScreen({
               </div>
             </div>
 
+            {freebie && (
+              <div className="freebie-banner">
+                <span className="freebie-icon">🎁</span>
+                <div>
+                  <strong>FREE {freebie.name}!</strong>
+                  <p>Worth ₹{freebie.value} — show at the counter</p>
+                </div>
+              </div>
+            )}
+
             <div className="promo-section">
               <h3 className="promo-title">🎁 Your Promo Code</h3>
               <div className="promo-code-box revealed">
@@ -228,18 +242,21 @@ export default function ResultScreen({
               <div className="stamp-display">
                 <span className="stamp-label">Loyalty Progress</span>
                 <div className="stamp-dots">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      className={`stamp-dot ${i < (freeCoffeeEarned ? 5 : pointsInCycle) ? 'filled' : ''}`}
-                    >
-                      {i < (freeCoffeeEarned ? 5 : pointsInCycle) ? '⭐' : '○'}
-                    </span>
-                  ))}
+                  {[...Array(5)].map((_, i) => {
+                    const isStamp = i < monthlyStamps
+                    const isReward = i === 4
+                    return (
+                      <span
+                        key={i}
+                        className={`stamp-dot ${isStamp ? 'filled' : ''} ${isReward ? 'reward-dot' : ''}`}
+                      >
+                        {isStamp ? '⭐' : isReward ? '☕' : '○'}
+                      </span>
+                    )
+                  })}
                 </div>
                 <span className="stamp-count">
-                  {pointsInCycle === 0 && loyaltyPoints > 0 ? 5 : pointsInCycle} / 5 for free coffee
-                  {freeCoffeeEarned && ' — FREE COFFEE EARNED!'}
+                  {monthlyStamps} / 4 stamps — {4 - monthlyStamps} more for free coffee
                 </span>
               </div>
             )}
@@ -299,6 +316,16 @@ export default function ResultScreen({
               <span className="final-amount">₹{finalAmount.toFixed(2)}</span>
             </div>
           </div>
+
+          {freebie && (
+            <div className="freebie-banner">
+              <span className="freebie-icon">🎁</span>
+              <div>
+                <strong>FREE {freebie.name}!</strong>
+                <p>Worth ₹{freebie.value} — show at the counter</p>
+              </div>
+            </div>
+          )}
 
           <div className="promo-section">
             <h3 className="promo-title">🎁 Your Promo Code</h3>
@@ -419,18 +446,21 @@ export default function ResultScreen({
               <div className="stamp-display">
                 <span className="stamp-label">Loyalty Progress</span>
                 <div className="stamp-dots">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      className={`stamp-dot ${i < (freeCoffeeEarned ? 5 : pointsInCycle) ? 'filled' : ''}`}
-                    >
-                      {i < (freeCoffeeEarned ? 5 : pointsInCycle) ? '⭐' : '○'}
-                    </span>
-                  ))}
+                  {[...Array(5)].map((_, i) => {
+                    const isStamp = i < monthlyStamps
+                    const isReward = i === 4
+                    return (
+                      <span
+                        key={i}
+                        className={`stamp-dot ${isStamp ? 'filled' : ''} ${isReward ? 'reward-dot' : ''}`}
+                      >
+                        {isStamp ? '⭐' : isReward ? '☕' : '○'}
+                      </span>
+                    )
+                  })}
                 </div>
                 <span className="stamp-count">
-                  {pointsInCycle === 0 && loyaltyPoints > 0 ? 5 : pointsInCycle} / 5 for free coffee
-                  {freeCoffeeEarned && ' — FREE COFFEE EARNED!'}
+                  {monthlyStamps} / 4 stamps — {4 - monthlyStamps} more for free coffee
                 </span>
               </div>
             </div>

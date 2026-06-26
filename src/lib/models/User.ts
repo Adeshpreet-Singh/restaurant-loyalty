@@ -13,8 +13,10 @@ export interface IUser extends Document {
   name: string
   loyaltyPoints: number
   totalVisits: number
+  totalFreeCoffees: number
   visitHistory: IVisit[]
   lastSpinDate?: Date
+  lastStampMonth: string
   completedTasks: {
     phone: boolean
     instagram: boolean
@@ -36,8 +38,10 @@ const userSchema = new Schema<IUser>({
   name: { type: String, default: '' },
   loyaltyPoints: { type: Number, default: 0 },
   totalVisits: { type: Number, default: 0 },
+  totalFreeCoffees: { type: Number, default: 0 },
   visitHistory: { type: [visitSchema], default: [] },
   lastSpinDate: { type: Date },
+  lastStampMonth: { type: String, default: '' },
   completedTasks: {
     phone: { type: Boolean, default: false },
     instagram: { type: Boolean, default: false },

@@ -37,6 +37,7 @@ interface UserData {
   name?: string
   loyaltyPoints?: number
   totalVisits?: number
+  totalFreeCoffees?: number
   visitHistory?: VisitHistory[]
   accountNumber?: string
 }
@@ -46,11 +47,13 @@ export default function LoyaltyApp() {
   const [billAmount, setBillAmount] = useState(0)
   const [discount, setDiscount] = useState(0)
   const [promoCode, setPromoCode] = useState('')
+  const [freebie, setFreebie] = useState<{ name: string; value: number } | undefined>(undefined)
   const [error, setError] = useState('')
 
   const [userName, setUserName] = useState('')
   const [userPhone, setUserPhone] = useState('')
   const [stamps, setStamps] = useState(0)
+  const [totalFreeCoffees, setTotalFreeCoffees] = useState(0)
   const [visitHistory, setVisitHistory] = useState<VisitHistory[]>([])
   const [accountNumber, setAccountNumber] = useState('')
 
@@ -62,7 +65,8 @@ export default function LoyaltyApp() {
         if (user) {
           setUserPhone(phone)
           setUserName(user.name || '')
-          setStamps(user.totalVisits || 0)
+          setStamps(user.loyaltyPoints || 0)
+          setTotalFreeCoffees(user.totalFreeCoffees || 0)
           setVisitHistory(user.visitHistory || [])
           setAccountNumber(user.accountNumber || generateAccountNumber(phone))
         }
@@ -87,11 +91,12 @@ export default function LoyaltyApp() {
     })
   }, [])
 
-  async function handleSpinResult(amount: number, disc: number) {
+  async function handleSpinResult(amount: number, disc: number, freebieResult?: { name: string; value: number }) {
     const code = generatePromoCode()
     setBillAmount(amount)
     setDiscount(disc)
     setPromoCode(code)
+    setFreebie(freebieResult)
     savePendingSpin(amount, disc, code)
 
     try {
@@ -112,7 +117,8 @@ export default function LoyaltyApp() {
 
     setUserPhone(phone)
     setUserName(updated.name || '')
-    setStamps(updated.totalVisits || 0)
+    setStamps(updated.loyaltyPoints || 0)
+    setTotalFreeCoffees(updated.totalFreeCoffees || 0)
     setVisitHistory(updated.visitHistory || [])
     setAccountNumber(updated.accountNumber || generateAccountNumber(phone))
 
@@ -126,7 +132,8 @@ export default function LoyaltyApp() {
       if (user) {
         setUserPhone(phone)
         setUserName(user.name || '')
-        setStamps(user.totalVisits || 0)
+        setStamps(user.loyaltyPoints || 0)
+        setTotalFreeCoffees(user.totalFreeCoffees || 0)
         setVisitHistory(user.visitHistory || [])
         setAccountNumber(user.accountNumber || generateAccountNumber(phone))
       }
@@ -177,6 +184,7 @@ export default function LoyaltyApp() {
             discount={discount}
             billAmount={billAmount}
             promoCode={promoCode}
+            freebie={freebie}
             onSaved={handleSaveUser}
             onViewLoyalty={handleViewLoyalty}
           />
@@ -189,6 +197,7 @@ export default function LoyaltyApp() {
             accountNumber={accountNumber}
             onBack={handleBackToWelcome}
             onNewVisit={handleNewVisit}
+            totalFreeCoffees={totalFreeCoffees}
           />
         )}
       </div>
