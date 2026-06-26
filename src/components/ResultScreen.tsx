@@ -22,6 +22,7 @@ export default function ResultScreen({
   freebie,
   onSaved,
   onViewLoyalty,
+  onBackToHome,
 }: {
   discount: number
   billAmount: number
@@ -29,6 +30,7 @@ export default function ResultScreen({
   freebie?: { name: string; value: number }
   onSaved: (phone: string) => Promise<unknown>
   onViewLoyalty: () => void
+  onBackToHome: () => void
 }) {
   const [animate, setAnimate] = useState(false)
   const [alreadyUsedToday, setAlreadyUsedToday] = useState(false)
@@ -265,6 +267,9 @@ export default function ResultScreen({
               <button className="btn-secondary" onClick={onViewLoyalty}>
                 🎫 My Loyalty Card
               </button>
+              <button className="btn-secondary" onClick={onBackToHome}>
+                ← Back to Home
+              </button>
             </div>
           </div>
         </div>
@@ -482,6 +487,9 @@ export default function ResultScreen({
                 🎫 My Loyalty Card
               </button>
             )}
+            <button className="btn-secondary" onClick={onBackToHome}>
+              ← Back to Home
+            </button>
           </div>
         </div>
       </div>

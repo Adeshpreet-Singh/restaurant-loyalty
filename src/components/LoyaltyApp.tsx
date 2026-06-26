@@ -60,33 +60,42 @@ export default function LoyaltyApp() {
   useEffect(() => {
     const phone = getLastPhone()
 
-    if (phone) {
-      getUser(phone).then((user: UserData | null) => {
-        if (user) {
-          setUserPhone(phone)
-          setUserName(user.name || '')
-          setStamps(user.loyaltyPoints || 0)
-          setTotalFreeCoffees(user.totalFreeCoffees || 0)
-          setVisitHistory(user.visitHistory || [])
-          setAccountNumber(user.accountNumber || generateAccountNumber(phone))
-        }
-      }).catch(() => {})
-    }
+    const loadUser = phone
+      ? getUser(phone).then((user: UserData | null) => {
+          if (user) {
+            setUserPhone(phone)
+            setUserName(user.name || '')
+            setStamps(user.loyaltyPoints || 0)
+            setTotalFreeCoffees(user.totalFreeCoffees || 0)
+            setVisitHistory(user.visitHistory || [])
+            setAccountNumber(user.accountNumber || generateAccountNumber(phone))
+            return user
+          }
+          return null
+        }).catch(() => null)
+      : Promise.resolve(null)
 
-    getTodaysSpin().then(spin => {
+    const loadSpin = getTodaysSpin().catch(() => {
+      const pending = loadPendingSpin()
+      if (pending) {
+        return { billAmount: pending.billAmount, discount: pending.discount, promoCode: pending.promoCode }
+      }
+      return null
+    })
+
+    Promise.all([loadUser, loadSpin]).then(([user, spin]) => {
       if (spin) {
         setBillAmount(spin.billAmount)
         setDiscount(spin.discount)
         setPromoCode(spin.promoCode)
-        setScreen('result')
-      }
-    }).catch(() => {
-      const pending = loadPendingSpin()
-      if (pending) {
-        setBillAmount(pending.billAmount)
-        setDiscount(pending.discount)
-        setPromoCode(pending.promoCode)
-        setScreen('result')
+
+        if (user) {
+          // Has phone + today's spin → show loyalty card with all promo codes
+          setScreen('loyalty')
+        } else {
+          // No phone + today's spin → show result (already used today)
+          setScreen('result')
+        }
       }
     })
   }, [])
@@ -187,6 +196,7 @@ export default function LoyaltyApp() {
             freebie={freebie}
             onSaved={handleSaveUser}
             onViewLoyalty={handleViewLoyalty}
+            onBackToHome={handleBackToWelcome}
           />
         )}
         {screen === 'loyalty' && (
