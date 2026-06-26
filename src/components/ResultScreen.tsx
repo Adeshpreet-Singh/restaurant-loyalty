@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { getLastPhone, getUser, completeTask } from '@/lib/utils/data'
 
-const INSTAGRAM_URL = 'https://www.instagram.com/brewbakescourtyard'
-const GOOGLE_REVIEW_URL = 'https://g.page/r/brewbakes-courtyard/review'
+const INSTAGRAM_URL = 'https://www.instagram.com/brewbakes_courtyard_kharar/'
+const GOOGLE_REVIEW_URL = 'https://www.google.com/search?hl=en-IN&gl=in&q=Brewbakes+Courtyard+%7C+Best+Multicuisine+Restaurant+in+Kharar+%7C+Best+Cafe+Kharar,+Sbp+city+sqaure+(City+of+dreams,+SCF+3B,+Landran+Rd,+Sante+Majra,+Kharar,+Sahibzada+Ajit+Singh+Nagar,+Punjab+140301&ludocid=17561637694977643097&lsig=AB86z5U-7J68ljxSxdiFUmEW5qyL#lrd=0x390fef7b3bfd774d:0xf3b7787023409259,3'
 
 function isToday(dateStr: string | Date) {
   if (!dateStr) return false
